@@ -18,11 +18,9 @@ void* handlerequest(void*);
 DWORD WINAPI handlerequest(LPVOID);
 #endif
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
 	//usage: sendfile [server_port]
-	if ((2 < argc) || ((2 == argc) && (0 == atoi(argv[1]))))
-	{
+	if ((2 < argc) || ((2 == argc) && (0 == atoi(argv[1])))) {
 		cout << "usage: sendfile [server_port]" << endl;
 		return 0;
 	}
@@ -42,8 +40,7 @@ int main(int argc, char* argv[])
 	if (2 == argc)
 		service = argv[1];
 
-	if (0 != getaddrinfo(NULL, service.c_str(), &hints, &res))
-	{
+	if (0 != getaddrinfo(NULL, service.c_str(), &hints, &res)) {
 		cout << "illegal port number or port is busy.\n" << endl;
 		return 0;
 	}
@@ -57,8 +54,7 @@ int main(int argc, char* argv[])
 	UDT::setsockopt(serv, 0, UDT_MSS, &mss, sizeof(int));
 #endif
 
-	if (UDT::ERROR == UDT::bind(serv, res->ai_addr, res->ai_addrlen))
-	{
+	if (UDT::ERROR == UDT::bind(serv, res->ai_addr, res->ai_addrlen)) {
 		cout << "bind: " << UDT::getlasterror().getErrorMessage() << endl;
 		return 0;
 	}
@@ -74,10 +70,8 @@ int main(int argc, char* argv[])
 
 	UDTSOCKET fhandle;
 
-	while (true)
-	{
-		if (UDT::INVALID_SOCK == (fhandle = UDT::accept(serv, (sockaddr*)&clientaddr, &addrlen)))
-		{
+	while (true) {
+		if (UDT::INVALID_SOCK == (fhandle = UDT::accept(serv, (sockaddr*)&clientaddr, &addrlen))) {
 			cout << "accept: " << UDT::getlasterror().getErrorMessage() << endl;
 			return 0;
 		}
@@ -117,24 +111,23 @@ DWORD WINAPI handlerequest(LPVOID usocket)
 	char request[1024];
 	int len;
 
-	if (UDT::ERROR == UDT::recv(fhandle, (char*)&len, sizeof(int), 0))
-	{
+	if (UDT::ERROR == UDT::recv(fhandle, (char*)&len, sizeof(int), 0)) {
 		cout << "recv: " << UDT::getlasterror().getErrorMessage() << endl;
 		return 0;
 	}
 
-	if (UDT::ERROR == UDT::recv(fhandle, request, len, 0))
-	{
+	if (UDT::ERROR == UDT::recv(fhandle, request, len, 0)) {
 		cout << "recv: " << UDT::getlasterror().getErrorMessage() << endl;
 		return 0;
 	}
+
 	request[len] = '\0';
 	char *req = strtok(request, " ");
 	char *file = strtok(NULL, " ");
 	char *timestamp = strtok(NULL, " ");
 	printf("Req: %s, file: %s, stamp: %s\n", req, file, timestamp);
-	
-	if ( !strcmp(req, "PULL") ){
+
+	if (!strcmp(req, "PULL")) {
 		// open the file
 		fstream ifs(file, ios::in | ios::binary);
 
@@ -143,8 +136,7 @@ DWORD WINAPI handlerequest(LPVOID usocket)
 		ifs.seekg(0, ios::beg);
 
 		// send file size information
-		if (UDT::ERROR == UDT::send(fhandle, (char*)&size, sizeof(int64_t), 0))
-		{
+		if (UDT::ERROR == UDT::send(fhandle, (char*)&size, sizeof(int64_t), 0)) {
 			cout << "send: " << UDT::getlasterror().getErrorMessage() << endl;
 			return 0;
 		}
@@ -154,23 +146,22 @@ DWORD WINAPI handlerequest(LPVOID usocket)
 
 		// send the file
 		int64_t offset = 0;
-		if (UDT::ERROR == UDT::sendfile(fhandle, ifs, offset, size))
-		{
+		if (UDT::ERROR == UDT::sendfile(fhandle, ifs, offset, size)) {
 			cout << "sendfile: " << UDT::getlasterror().getErrorMessage() << endl;
 			return 0;
 		}
 
 		UDT::perfmon(fhandle, &trace);
 		cout << "speed = " << trace.mbpsSendRate << "Mbits/sec" << endl;
-		
+
 		UDT::close(fhandle);
 
 		ifs.close();
 	}
-	else if (!strcmp(req, "PUSH")){
+	else if (!strcmp(req, "PUSH")) {
 
 	}
-	
+
 
 #ifndef WIN32
 	return NULL;
